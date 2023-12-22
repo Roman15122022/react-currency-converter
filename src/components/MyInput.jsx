@@ -1,53 +1,121 @@
-import React, {useEffect, useState} from 'react';
-import {Box, Button, TextField} from "@mui/material";
+import React, { useEffect, useState } from 'react';
+import { Box, Button, FormControl, InputLabel, MenuItem, Select, TextField } from "@mui/material";
 import axios from "axios";
 
+let newDataMap = {};
 const MyInput = () => {
-    const [value, setValue] = useState('');
-    const [options, setOptions] = useState({variant: 'contained', color: 'success', error: false})
+    const [valueUAH, setValueUAH] = useState('');
+    const [options, setOptions] = useState({ variant: 'contained', color: 'success', error: false });
+    const [currency, setCurrency] = useState('EUR');
+    const [arrValue, setArrValue] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [finallyValue, setFinallyValue] = useState('')
 
-    const handleClick = async () => {
+    const handleClick = () => {
         if (options.error) return;
-        const response = await axios.get('https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json');
-        console.log(response.data);
+        let course = newDataMap[currency];
+        let answer = Number(valueUAH) / Number(course[0]);
+        setFinallyValue(answer.toFixed(2));
+
     }
 
     const handleChange = (event) => {
-        setValue(event.target.value);
+        setValueUAH(event.target.value);
     }
+
     useEffect(() => {
-        if (Number.isNaN(Number(value))) {
+        if (Number.isNaN(Number(valueUAH))) {
             setOptions({
                 variant: 'outlined',
                 color: 'error',
                 error: true,
             });
         } else {
-            setOptions({variant: 'contained', color: 'success', error: false});
+            setOptions({ variant: 'contained', color: 'success', error: false });
         }
-    }, [value])
+    }, [valueUAH])
+
+    useEffect(() => {
+        const fetching = async () => {
+            try {
+                const response = await axios.get('https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json');
+                const data = await response.data;
+                newDataMap = data.reduce((memo, item) => {
+                    const cc = item.cc;
+                    const rate = item.rate;
+                    const txt = item.txt;
+                    memo[cc] = [rate, txt];
+                    return memo;
+                }, {});
+                const currencies = Object.keys(newDataMap);
+                setArrValue(currencies);
+                setLoading(false);
+            } catch (error) {
+                console.error('Error', error);
+                setLoading(false);
+            }
+        };
+        fetching();
+    }, [])
 
     return (
-        <div className='text-center'>
-            <Box
-                component="form"
-                sx={{
-                    '& .MuiTextField-root': {m: 1, width: '25ch'},
-                }}
-                noValidate
-                autoComplete="off"
-            >
-                <div>
+        <div className='flex flex-col justify-center items-center'>
+            <div className='flex items-center'>
+                <Box
+                    component="form"
+                    sx={{
+                        '& .MuiTextField-root': { m: 1, width: '25ch' },
+                    }}
+                    noValidate
+                    autoComplete="off"
+                >
                     <TextField
                         error={options.error}
                         color='success'
                         onChange={handleChange}
-                        value={value}
+                        value={valueUAH}
                         id="outlined-error"
                         label="Enter (UAH)"
-                        helperText={options.error ? 'The amount entered must be in numeric format with a decimal point. For example, "42.56"' : ''}
                     />
-                </div>
+                </Box>
+                <div>⇨</div>
+                {loading ? (
+                    <p>Loading currencies...</p>
+                ) : (
+                    <FormControl>
+                        <InputLabel id="demo-simple-select-label">C</InputLabel>
+                        <Select
+                            labelId="demo-simple-select-label"
+                            id="demo-simple-select"
+                            value={currency}
+                            label="$"
+                            onChange={(e) => setCurrency(e.target.value)}
+                        >
+                            {arrValue.map((value) => (
+                                <MenuItem key={value} value={value}>{value}</MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                )}
+            </div>
+            <div className='my-5 text-4xl'>⇅</div>
+            <Box
+                component="form"
+                sx={{
+                    '& .MuiTextField-root': { m: 1, width: '34ch' },
+                }}
+                noValidate
+                autoComplete="off"
+            >
+                <TextField
+                    disabled
+                    error={options.error}
+                    color='success'
+                    value={finallyValue}
+                    id="outlined-error"
+                    helperText={options.error ? 'For example, "42.56"' : ''}
+                    label={"I'll get " + '(' + currency + ')'}
+                />
             </Box>
             <Button onClick={handleClick} variant={options.variant} color={options.color}>convert</Button>
         </div>

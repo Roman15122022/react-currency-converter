@@ -9,12 +9,13 @@ const MyInput = () => {
     const [currency, setCurrency] = useState('EUR');
     const [arrValue, setArrValue] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [finallyValue, setFinallyValue] = useState('')
-
+    const [finallyValue, setFinallyValue] = useState('');
+    const [nameCur, setNameCur] = useState('');
     const handleClick = () => {
         if (options.error) return;
         let course = newDataMap[currency];
         let answer = Number(valueUAH) / Number(course[0]);
+        setNameCur(course[1]);
         setFinallyValue(answer.toFixed(2));
 
     }
@@ -113,7 +114,7 @@ const MyInput = () => {
                     color='success'
                     value={finallyValue}
                     id="outlined-error"
-                    helperText={options.error ? 'For example, "42.56"' : ''}
+                    helperText={options.error ? 'For example, "42.56"' : nameCur}
                     label={"I'll get " + '(' + currency + ')'}
                 />
             </Box>

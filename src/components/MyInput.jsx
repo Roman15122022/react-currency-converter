@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Button, FormControl, InputLabel, MenuItem, Select, TextField } from "@mui/material";
 import axios from "axios";
+import {useDebounce} from "../hooks/useDebounce";
 
 let newDataMap = {};
+const URL = 'https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json';
 const MyInput = () => {
     const [valueUAH, setValueUAH] = useState('');
     const [options, setOptions] = useState({ variant: 'contained', color: 'success', error: false });
@@ -11,20 +13,8 @@ const MyInput = () => {
     const [loading, setLoading] = useState(true);
     const [finallyValue, setFinallyValue] = useState('');
     const [nameCur, setNameCur] = useState('');
-    const handleClick = () => {
-        if (options.error) return;
-        let course = newDataMap[currency];
-        let answer = Number(valueUAH) / Number(course[0]);
-        setNameCur(course[1]);
-        setFinallyValue(answer.toFixed(2));
 
-    }
-
-    const handleChange = (event) => {
-        setValueUAH(event.target.value);
-    }
-
-    useEffect(() => {
+    const verification = useDebounce(() =>{
         if (Number.isNaN(Number(valueUAH))) {
             setOptions({
                 variant: 'outlined',
@@ -34,12 +24,27 @@ const MyInput = () => {
         } else {
             setOptions({ variant: 'contained', color: 'success', error: false });
         }
+    },500)
+    const handleClick = () => {
+        if (options.error) return;
+        let course = newDataMap[currency];
+        let answer = Number(valueUAH) / Number(course[0]);
+        setNameCur(course[1]);
+        setFinallyValue(answer.toFixed(2));
+    }
+
+    const handleChange = (event) => {
+        setValueUAH(event.target.value);
+    }
+
+    useEffect(() => {
+        verification();
     }, [valueUAH])
 
     useEffect(() => {
         const fetching = async () => {
             try {
-                const response = await axios.get('https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json');
+                const response = await axios.get(URL);
                 const data = await response.data;
                 newDataMap = data.reduce((memo, item) => {
                     const cc = item.cc;
